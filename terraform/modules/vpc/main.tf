@@ -21,7 +21,7 @@ resource "aws_subnet" "sub1" {
   cidr_block        = "10.0.1.0/24"
   vpc_id            = aws_vpc.vpc.id
   availability_zone = "us-east-1a"
-  map_public_ip_on_launch = true
+  # map_public_ip_on_launch = true
   tags = {
     Name = "subnt1"
   }
@@ -32,7 +32,7 @@ resource "aws_subnet" "sub2" {
   cidr_block        = "10.0.2.0/24"
   vpc_id            = aws_vpc.vpc.id
   availability_zone = "us-east-1b"
-  map_public_ip_on_launch = true
+  # map_public_ip_on_launch = true
   tags = {
     Name = "subnt2"
   }
@@ -41,8 +41,8 @@ resource "aws_subnet" "sub2" {
 
 
 resource "aws_db_subnet_group" "dbsubnet" {
-  name       = "subnt_grp"
-#   subnet_ids = [aws_subnet.sub1.id, aws_subnet.sub2.id, aws_subnet.sub3.id]
+  name = "subnt_grp"
+  #   subnet_ids = [aws_subnet.sub1.id, aws_subnet.sub2.id, aws_subnet.sub3.id]
   subnet_ids = [aws_subnet.sub1.id, aws_subnet.sub2.id]
   tags = {
     Name = "subnt_grp"
@@ -52,7 +52,7 @@ resource "aws_db_subnet_group" "dbsubnet" {
 resource "aws_route_table" "rtb" {
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw.id
+    gateway_id = aws_nat_gateway.gw.id
   }
   vpc_id = aws_vpc.vpc.id
   tags = {
@@ -75,10 +75,28 @@ resource "aws_subnet" "subnet-public" {
   vpc_id = aws_vpc.vpc.id
 
   cidr_block = "10.0.0.0/24"
-  map_public_ip_on_launch = true
+  # map_public_ip_on_launch = true
   tags = {
     Name = "Public-subnt-public"
   }
+}
+
+
+resource "aws_eip" "public-ip" {
+  domain = "vpc"
+}
+
+resource "aws_nat_gateway" "gw" {
+  allocation_id = aws_eip.public-ip.id
+  subnet_id     = aws_subnet.subnet-public.id
+
+  tags = {
+    Name = "gw NAT"
+  }
+
+  # To ensure proper ordering, it is recommended to add an explicit dependency
+  # on the Internet Gateway for the VPC.
+  depends_on = [aws_internet_gateway.gw]
 }
 
 resource "aws_route_table" "rtb-public" {
